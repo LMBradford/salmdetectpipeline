@@ -1,8 +1,5 @@
 # This snakefile creates input fastq files for the Mock Communities Salmonella Detection project.
 
-
-configfile: "/home/bradford/scratch/MockcommEnterobac_project2/configs/mockcomm_step1_setup.yaml"
-
 PAIR = [1,2]
 reps = config['reps']
 bgnum = config['libsize'] - config['salmnum']

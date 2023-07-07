@@ -17,4 +17,4 @@ export R_LIBS=~/.local/R/$EBVERSIONR/
 source ~/env/bin/activate
 
 # Run Snakemake
-snakemake -s snakefile_ccmockcom_step1setup.py -p --cores 1 Library/Mockcomm${J}/Mock_salm${J}rep${I}_R1.fq.gz Library/Mockcomm${J}/Mock_salm${J}rep${I}_R2.fq.gz
+snakemake -s snakefile_ccmockcomm_step1setup.py -p --cores 1 Library/Mockcomm${J}/Mock_salm${J}rep${I}_R1.fq.gz Library/Mockcomm${J}/Mock_salm${J}rep${I}_R2.fq.gz
