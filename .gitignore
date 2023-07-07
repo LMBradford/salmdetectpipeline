@@ -1,0 +1,32 @@
+### R ###
+# History files
+*.Rhistory
+
+# Session Data files
+*.RData
+*.RDataTmp
+
+# Temporary files created by R markdown
+*.utf8.md
+*.knit.md
+
+# knitr and R markdown default cache directories
+R/*_cache/
+R/cache/
+
+# RStudio files
+R/.Rproj.user/
+
+### Sequence files ###
+Library/
+
+### Snakemake output ###
+slurm/logs/
+Metaphlan4/
+Round1/
+Round2/
+Trim/
+Trimlogs/
+Testfiles/
+
+
