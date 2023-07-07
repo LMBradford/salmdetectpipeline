@@ -1,0 +1,26 @@
+###DATA FOR METAPHLAN4
+pathtoinput: '/home/bradford/scratch/MockcommEnterobac_project2/Library/'
+
+outputdir: 'Metaphlan4/'
+
+dbloc: '/home/bradford/scratch/metaphlan_databases'
+index: 'mpa_vJan21_CHOCOPhlAnSGB_202103'
+salmmarkerlist: '/home/bradford/scratch/metaphlan_databases/mpa_vJan21_CHOCOPhlAnSGB_202103_salmonellalist.txt'
+
+comms: ['negrep1','negrep2','negrep3','negrep4','negrep5','negrep6','negrep7','negrep8','negrep9','negrep10','negrep11','negrep12','negrep13','negrep14','negrep15','negrep16','negrep17','negrep18','negrep19','negrep20','salm1000rep1','salm1000rep2','salm1000rep3','salm1000rep4','salm1000rep5','salm1000rep6','salm1000rep7','salm1000rep8','salm1000rep9','salm1000rep10','salm1000rep11','salm1000rep12','salm1000rep13','salm1000rep14','salm1000rep15','salm1000rep16','salm1000rep17','salm1000rep18','salm1000rep19','salm1000rep20',]
+
+
+##DATA FOR KR2SSR
+
+# Round(s)
+analysis_round: "Round3"
+
+# Kraken2 Database locations
+dbs:
+  kr2bac: "/home/bradford/projects/def-alexwong/bradford/Kraken_dbs/kr2bac" 
+
+samSSR_db: "/home/bradford/projects/def-alexwong/bradford/Blast_dbs/SalmSSR_db/SalmSSRs"
+
+#Confidence levels for Kraken2
+confidence:
+  '0.25': 0.25
