@@ -2,7 +2,7 @@
 #Adjust the information in this file to reflect the working environment
 
 # Round(s)
-analysis_round: "Round3"
+analysis_round: "Round2"
 
 #Input files location
 pathtoinput: "/home/bradford/scratch/MockcommEnterobac_project2/Library/Mockcomm100/" #leave blank if files are in current working directory

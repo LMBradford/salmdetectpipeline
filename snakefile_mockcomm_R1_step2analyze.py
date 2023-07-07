@@ -94,13 +94,13 @@ rule kr2pair_kr2bac:
   input:
     paired_R1 = config['analysis_round'] + "/Mock_{comm}_R1.P.fq",
     paired_R2 = config['analysis_round'] + "/Mock_{comm}_R2.P.fq",
-    bac_db = rules.cp_db_kr2bac.output
+    db = rules.cp_db_kr2bac.output
   output:
-    text = temp(config['analysis_round'] + "/{db}/Kr2reports/{comm}_paired.{db}_c{conf}_kr.txt"),
-    report = config['analysis_round'] + "/{db}/Kr2reports/{comm}_paired.{db}_c{conf}.rep"
+    text = temp(config['analysis_round'] + "/kr2bac/Kr2reports/{comm}_paired.kr2bac_c{conf}_kr.txt"),
+    report = config['analysis_round'] + "/kr2bac/Kr2reports/{comm}_paired.kr2bac_c{conf}.rep"
   params: 
     confidence = lambda wildcards: config['confidence'][wildcards.conf]
-  shell: "kraken2 -db {input.bac_db} --paired {input.paired_R1} {input.paired_R2} \
+  shell: "kraken2 -db {input.db} --paired {input.paired_R1} {input.paired_R2} \
   --use-names \
   --output {output.text} \
   --confidence {params.confidence} \
@@ -109,13 +109,13 @@ rule kr2pair_kr2bac:
 rule kr2unpair_kr2bac:
   input:
     unpaired = config['analysis_round'] + "/{comm}_unpaired.fq.gz",
-    bac_db = rules.cp_db_kr2bac.output
+    db = rules.cp_db_kr2bac.output
   output:
-    text = temp(config['analysis_round'] + "/{db}/Kr2reports/{comm}_unpaired.{db}_c{conf}_kr.txt"),
-    report = config['analysis_round'] + "/{db}/Kr2reports/{comm}_unpaired.{db}_c{conf}.rep"      
+    text = temp(config['analysis_round'] + "/kr2bac/Kr2reports/{comm}_unpaired.kr2bac_c{conf}_kr.txt"),
+    report = config['analysis_round'] + "/kr2bac/Kr2reports/{comm}_unpaired.kr2bac_c{conf}.rep"      
   params: 
     confidence = lambda wildcards: config['confidence'][wildcards.conf]
-  shell: "kraken2 -db {input.bac_db} {input.unpaired} \
+  shell: "kraken2 -db {input.db} {input.unpaired} \
   --use-names \
   --output {output.text} \
   --confidence {params.confidence} \
@@ -127,13 +127,13 @@ rule kr2pair_kr2std:
   input:
     paired_R1 = config['analysis_round'] + "/Mock_{comm}_R1.P.fq",
     paired_R2 = config['analysis_round'] + "/Mock_{comm}_R2.P.fq",
-    bac_db = rules.cp_db_kr2std.output
+    db = rules.cp_db_kr2std.output
   output:
-    text = temp(config['analysis_round'] + "/{db}/Kr2reports/{comm}_paired.{db}_c{conf}_kr.txt"),
-    report = config['analysis_round'] + "/{db}/Kr2reports/{comm}_paired.{db}_c{conf}.rep"
+    text = temp(config['analysis_round'] + "/kr2std/Kr2reports/{comm}_paired.kr2std_c{conf}_kr.txt"),
+    report = config['analysis_round'] + "/kr2std/Kr2reports/{comm}_paired.kr2std_c{conf}.rep"
   params: 
     confidence = lambda wildcards: config['confidence'][wildcards.conf]
-  shell: "kraken2 -db {input.bac_db} --paired {input.paired_R1} {input.paired_R2} \
+  shell: "kraken2 -db {input.db} --paired {input.paired_R1} {input.paired_R2} \
   --use-names \
   --output {output.text} \
   --confidence {params.confidence} \
@@ -142,13 +142,13 @@ rule kr2pair_kr2std:
 rule kr2unpair_kr2std:
   input:
     unpaired = config['analysis_round'] + "/{comm}_unpaired.fq.gz",
-    bac_db = rules.cp_db_kr2std.output
+    db = rules.cp_db_kr2std.output
   output:
-    text = temp(config['analysis_round'] + "/{db}/Kr2reports/{comm}_unpaired.{db}_c{conf}_kr.txt"),
-    report = config['analysis_round'] + "/{db}/Kr2reports/{comm}_unpaired.{db}_c{conf}.rep"      
+    text = temp(config['analysis_round'] + "/kr2std/Kr2reports/{comm}_unpaired.kr2std_c{conf}_kr.txt"),
+    report = config['analysis_round'] + "/kr2std/Kr2reports/{comm}_unpaired.kr2std_c{conf}.rep"      
   params: 
     confidence = lambda wildcards: config['confidence'][wildcards.conf]
-  shell: "kraken2 -db {input.bac_db} {input.unpaired} \
+  shell: "kraken2 -db {input.db} {input.unpaired} \
   --use-names \
   --output {output.text} \
   --confidence {params.confidence} \
@@ -160,13 +160,13 @@ rule kr2pair_kr2plrename:
   input:
     paired_R1 = config['analysis_round'] + "/Mock_{comm}_R1.P.fq",
     paired_R2 = config['analysis_round'] + "/Mock_{comm}_R2.P.fq",
-    bac_db = rules.cp_db_kr2plrename.output
+    db = rules.cp_db_kr2plrename.output
   output:
-    text = temp(config['analysis_round'] + "/{db}/Kr2reports/{comm}_paired.{db}_c{conf}_kr.txt"),
-    report = config['analysis_round'] + "/{db}/Kr2reports/{comm}_paired.{db}_c{conf}.rep"
+    text = temp(config['analysis_round'] + "/kr2plrename/Kr2reports/{comm}_paired.kr2plrename_c{conf}_kr.txt"),
+    report = config['analysis_round'] + "/kr2plrename/Kr2reports/{comm}_paired.kr2plrename_c{conf}.rep"
   params: 
     confidence = lambda wildcards: config['confidence'][wildcards.conf]
-  shell: "kraken2 -db {input.bac_db} --paired {input.paired_R1} {input.paired_R2} \
+  shell: "kraken2 -db {input.db} --paired {input.paired_R1} {input.paired_R2} \
   --use-names \
   --output {output.text} \
   --confidence {params.confidence} \
@@ -175,13 +175,13 @@ rule kr2pair_kr2plrename:
 rule kr2unpair_kr2plrename:
   input:
     unpaired = config['analysis_round'] + "/{comm}_unpaired.fq.gz",
-    bac_db = rules.cp_db_kr2plrename.output
+    db = rules.cp_db_kr2plrename.output
   output:
-    text = temp(config['analysis_round'] + "/{db}/Kr2reports/{comm}_unpaired.{db}_c{conf}_kr.txt"),
-    report = config['analysis_round'] + "/{db}/Kr2reports/{comm}_unpaired.{db}_c{conf}.rep"      
+    text = temp(config['analysis_round'] + "/kr2plrename/Kr2reports/{comm}_unpaired.kr2plrename_c{conf}_kr.txt"),
+    report = config['analysis_round'] + "/kr2plrename/Kr2reports/{comm}_unpaired.kr2plrename_c{conf}.rep"      
   params: 
     confidence = lambda wildcards: config['confidence'][wildcards.conf]
-  shell: "kraken2 -db {input.bac_db} {input.unpaired} \
+  shell: "kraken2 -db {input.db} {input.unpaired} \
   --use-names \
   --output {output.text} \
   --confidence {params.confidence} \
