@@ -12,7 +12,7 @@ FILES = glob.glob("*_R1.fq.gz") #Files must be in working directory
 #Print to new file, retaining sample name
 
 for file in FILES:
-	name = file.split("_")[0]
+	name = file.split("_")[1]
 	cmd = f"zcat {file} | sed -n '1~4p' | cut -c2- | cut -d ' ' -f 1 > {name}_names.txt"
 	print(cmd)
 	os.system(cmd)
