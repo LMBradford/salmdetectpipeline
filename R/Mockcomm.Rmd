@@ -1,0 +1,494 @@
+---
+title: "MockComm_analysis"
+author: "Lauren Bradford"
+date: "01/04/2022"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(RColorBrewer)
+library(wesanderson)
+library(reshape2)
+library(egg)
+library(formattable)
+library(tidyverse) #Contains ggplot2, tidyr, dplyr, and many more
+library(here)
+library(scales)
+library(ggsci)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+# Import and manage datasets
+Imports rely on relative paths. Input files should be in same directory as Rmd file.
+Import data from Round 1-2 (both analysis rounds were run together)
+```{r}
+
+R12_table1 <- read.delim(here("R","Round1-2_results_table.txt"))
+
+#Using tidyr to split fileID column
+#FileID column has multiple pieces of information, split those into individual columns
+R12_table1 <- separate(R12_table1, col=fileID, into=c("Comm", "Info"), sep="_kr2")
+
+R12_table1 <- separate(R12_table1, col=Comm, into=c("Spike", "Rep"), sep="rep")
+
+#Save a table with separate community column for doing positive library counts
+R12_table2 <- R12_table1
+
+#Need a column that combines Spike level, db, and confidence level
+#Need for averaging replicates
+R12_table1 <- unite(R12_table1, col="SpikeInfo", c('Spike', 'Info'), sep="_")
+
+```
+
+Import data from Round 3 (used only kr2bac database and confidence 0.25)
+```{r}
+
+R3_table1 <- read.delim(here("R","Round3_results_table.txt"))
+
+#Split column with fileID to give useful columns (Spike in level, replicate, and confidence)
+R3_table1 <- separate(R3_table1, col=fileID, into=c("Comm", "Conf"), sep="_kr2bac_")
+
+R3_table1 <- separate(R3_table1, col=Comm, into=c("Spike", "Rep"), sep="rep")
+
+```
+
+Import data from Round 4 (same settings as round 3, 2 additional spikes: negative and 1000)
+```{r}
+R4_table1 <- read.delim(here("R","Round4_results_table.txt"))
+
+#Split column with fileID to give useful columns (Spike in level, replicate, and confidence)
+R4_table1 <- separate(R4_table1, col=fileID, into=c("Comm", "Conf"), sep="_kr2bac_")
+
+R4_table1 <- separate(R4_table1, col=Comm, into=c("Spike", "Rep"), sep="rep")
+```
+
+Import data from Metaphlan4 analysis
+```{r}
+mp4 <- read.delim(here("R",'Mockcomm_metaphlan4.txt'))
+```
+
+
+Import data from CaecaSim
+```{r}
+CS_table1 <- read.delim(here("R","Caecasim_results_sorted.txt"))
+
+CS_table1 <- separate(CS_table1, col=Library, into=c("Freq","Rep"), sep="rep")
+
+CS_freqnum = c(4000000, 400000, 40000, 4000, 400, 40, 4, 0.4)
+```
+
+
+
+# Rounds 1-2 Analyses
+
+### Average numerical data for replicates in Precision-Recall plots
+```{r}
+#Rearrange columns, I think?
+R12_colnames <- colnames(R12_table1)
+R12_colnames <- R12_colnames[-c(1,2,3,4,5)]
+
+R12_avgs <- R12_table1 %>%
+   group_by(SpikeInfo) %>% 
+   summarise_at(vars(all_of(R12_colnames)), mean)
+
+R12_avgs <- separate(R12_avgs, col=SpikeInfo, into=c("Spike", "db", "conf"), sep="_")
+
+head(R12_avgs)
+```
+
+### Make subsetted tables for each spike-in level
+Used in PR plots
+```{r}
+salm100000_avgs <- subset(R12_avgs, Spike == "salm100000")
+salm10000_avgs <- subset(R12_avgs, Spike == "salm10000")
+salm100_avgs <- subset(R12_avgs, Spike == "salm100")
+```
+
+
+## Average + stddev of numerical data for replicates in bar plots
+
+Step 1:
+```{r}
+#Make two dataframes, one for each of False positives by Kraken or FP by SSRcheck
+#Only one dataframe needs to have the number of replicates (n=n())
+#Otherwise the merge function gets annoyed by duplicate column
+R12_avgs2 <- R12_table1 %>%
+   group_by(SpikeInfo) %>% 
+   summarise(FalsePos_Kraken2=mean(False.positives), n=n(), sd_Kraken2=sd(False.positives))
+
+R12_avgs3 <- R12_table1 %>%
+   group_by(SpikeInfo) %>% 
+   summarise(FalsePos_SSRs=mean(SSRs.False.Pos), sd_SSRs=sd(SSRs.False.Pos))
+
+#Merge the dataframes based on the Spikeinfo column
+R12FP_avgs_stdevs <- merge(R12_avgs2, R12_avgs3, by="SpikeInfo")
+
+#Delete the unnecessary intermediate dataframes
+rm(R12_avgs2)
+rm(R12_avgs3)
+
+```
+
+Step 2:
+
+Melt those separate dataframes.
+Then merge together melted dfs.
+Then separate out the info columns
+```{r}
+#Separate out the means and the std devs into separate dfs.
+#Melt those separate dataframes.
+FP_means <- subset(R12FP_avgs_stdevs, select =c('SpikeInfo', 'FalsePos_Kraken2', 'FalsePos_SSRs'))
+
+FP_means_melt =melt(FP_means, id.vars=c('SpikeInfo'))
+
+
+FP_sds <- subset(R12FP_avgs_stdevs, select =c('SpikeInfo','sd_Kraken2', 'sd_SSRs'))
+FP_sds_melt = melt(FP_sds, id.vars =c('SpikeInfo'))
+
+#Rename the column, since FP_means also has different column named 'value'
+FP_sds_melt <- rename(FP_sds_melt, sd=value)
+#Remove all but the sd column, since SpikeInfo and variable are in other df that we will append to
+FP_sds_melt <- within(FP_sds_melt, rm('SpikeInfo','variable'))
+
+#Merge together directly 
+#Merging by SpikeID causes confusion because each ID exists twice
+#Once for FP_Kraken2, once for FP_SSRs. This causes duplication and other problems
+R12FP_melt <- cbind(FP_means_melt,FP_sds_melt)
+
+#Split info column
+R12FP_melt <- separate(R12FP_melt, col=SpikeInfo, into=c("Spike", "db", "conf"), sep="_")
+
+#Remove c character from conf column
+R12FP_melt$conf <- gsub("c","", as.character(R12FP_melt$conf))
+
+#Remove separate tables now that they're merged
+rm(FP_sds, FP_sds_melt)
+rm(FP_means, FP_means_melt)
+```
+
+
+
+# Precision-recall plots
+### Plotting averages for each spike-in level with just Kraken2
+
+```{r}
+
+libnames <- as_labeller(c(salm100000 = "1% Salmonella", salm10000 = "0.1% Salmonella", salm100 = "0.001% Salmonella"))
+
+dbnames <- as_labeller(c(bac="kr2bac",plrename="kr2plrename",std="kr2std"))
+
+#Remove c character from confidence column
+R12_avgs$conf <- gsub("c","", as.character(R12_avgs$conf))
+
+PRfig <- ggplot(R12_avgs, aes(x=Recall_Kr2, y=Precision.Kr2, label=conf)) +
+  geom_point(size = 3, aes(shape=conf)) +
+  geom_line(aes(linetype=db)) +
+  facet_wrap(~fct_rev(Spike), ncol=1, strip.position = 'right', labeller = libnames) + 
+  xlab("Recall") + 
+  ylab("Precision") +
+  labs(linetype = "Database", shape = "Confidence")
+#fct_rev from forcats(tidyverse) reverses order of facets
+
+
+PRfig
+```
+
+
+Figure : Precision-recall plots for Salmonella detection via Kraken2 annotation in 10 million read libraries containing (top panel) 1 % (100k), (middle panel) 0.1% (10k), and (bottom panel) 0.001% (100) Salmonella-derived reads. Kraken2 confidence levels are 0 for leftmost points and 1 for rightmost points. Colours indicate the database used. 
+
+  
+
+# Stacked bar plot of Salmonella assignments
+
+```{r}
+# Subset and melt the necessary data
+
+salm100_bardata_melt = subset(salm100_avgs, select = c('Spike', 'db', 'conf','S.ent.reads.correctly.IDed','S.ent.reads.assigned.higher','Unclassified','S.ent.reads.incorrectly.assigned'))
+
+#Rename columns
+salm100_bardata_melt <- rename(salm100_bardata_melt, Salmonella=S.ent.reads.correctly.IDed, 
+                                HigherTaxa=S.ent.reads.assigned.higher,
+                                Incorrect=S.ent.reads.incorrectly.assigned)
+
+#Remove c character from conf column
+
+salm100_bardata_melt$conf <- gsub("c","", as.character(salm100_bardata_melt$conf))
+
+#Melt
+salm100_bardata_melt <- melt(salm100_bardata_melt, id.vars=c('Spike', 'db', 'conf'))
+
+```
+
+Plot
+```{r}
+#Make stacked bar plot
+barstack <- ggplot(salm100_bardata_melt, aes(x=value, y=conf, fill=variable)) + 
+  geom_bar(stat = "identity", position = position_stack(reverse = TRUE)) +
+  facet_wrap(~db, ncol=1, strip.position = 'right') +
+  xlab('Percent') +
+  ylab('Confidence')
+
+```
+
+# Bar chart of false positives
+
+Including std dev error bars
+
+Reminder of dataframe structure.
+Value column = mean of 20 replicates
+sd = std dev of 20 replicates
+```{r}
+head(R12FP_melt)
+```
+
+```{r}
+barFP <- ggplot(data=R12FP_melt, aes(x=value, y = conf)) +
+  geom_col(color = 'black', aes(fill = variable, alpha = Spike), 
+           #Colour by Kr2 vs. SSRcheck false positives,
+           #Shade by spike-in level
+           position = position_dodge2(width=2)) +
+          #Dodge so it's not stacked, reverse order on y-axis
+  scale_x_continuous(trans='sqrt',
+                     breaks = c(0, 400, 2000, 4000, 6000)) +
+  facet_wrap(~db, ncol=1, strip.position = 'right') +
+  geom_errorbar(aes(xmin=value-sd, xmax=value+sd),
+                position = position_dodge2(0.9)) +
+  xlab('False positives')
+
+barFP
+#Square root transformation on x-axis to better show small values
+#Can't do log transformation because of many 0 values
+
+#Don't use reverse = TRUE within position_dodge2, otherwise the bars will not line up with the error bars
+```
+
+Simplified bar plot for presentation: use only salm100 library.
+```{r}
+
+#Select only salm100 rows
+R12FPsalm100_melt <- R12FP_melt[R12FP_melt$Spike == 'salm100',]
+
+#Plot
+barFP_salm100 <- ggplot(data=R12FPsalm100_melt, aes(x=value, y = conf)) +
+  geom_col(aes(fill = variable), 
+           #Colour by Kr2 vs. SSRcheck false positives,
+           position = position_dodge2(width=2)) +
+          #Dodge so it's not stacked, reverse order on y-axis
+  scale_x_continuous(trans='sqrt',
+                     breaks = c(0, 400, 2000, 4000, 6000)) +
+  facet_wrap(~db, ncol=1, strip.position = 'right', labeller = dbnames) +
+  geom_errorbar(aes(xmin=value-sd, xmax=value+sd),
+                position = position_dodge2(0.9)) +
+  xlab('False positives') +
+  ylab('Confidence') +
+  theme(legend.position = 'bottom')
+
+
+
+```
+
+
+## Combined bar chart figures
+
+```{r}
+Fig_bar <- ggarrange(barstack +
+            theme(
+              #Remove the facet label from left plot
+              strip.text.y = element_blank(),
+              legend.position = 'bottom') +
+            #Change legend label and format
+            labs(fill = 'Read\nAssignment') +
+            guides(fill = guide_legend(nrow = 2)) +
+            #Fun with colour palettes
+  scale_fill_d3(), 
+          barFP_salm100 +
+            theme(#Remove the y-axis label and numbers from right plot
+              axis.text.y = element_blank(),
+                  axis.title.y = element_blank(),
+                  legend.position = 'bottom') +
+            guides(fill = guide_legend(nrow = 2, byrow = TRUE))+
+      #Re-name legend title and items
+  scale_fill_manual(name="Analysis step",
+                         breaks=c("FalsePos_Kraken2", "FalsePos_SSRs"),
+                         labels=c("Kraken 2", "Kraken 2 + SSR-check"),
+                      values=c("#17BECFFF","#9467BDFF")),
+          ncol=2)
+
+```
+
+
+
+
+# Counts of positive libraries
+```{r}
+## Round1-2
+
+#Subset the data to just spike-in level and number of confirmed hits
+R12_subset = subset(R12_table2, Info == 'bac_c0.25')
+R12_subset = subset(R12_subset, select = c('Spike','S.ent.hits.to.SSRs'))
+#Remove characters so that the Spike column will be same in all analysis sets (R12, R3, metaphlan)
+R12_subset$Spike <- gsub("salm","", as.character(R12_subset$Spike))
+
+R12_kr2ssr_poslibcounts <- R12_subset %>%
+  group_by(Spike) %>%
+  summarize(Pipeline_positive_libraries = sum(S.ent.hits.to.SSRs > 0))
+
+## Round 3
+#Subset data and set Replicates as factor (required for heatmap)
+r3_subset = subset(R3_table1, select = c('Spike','Rep','S.ent.hits.to.SSRs'))
+
+#Remove characters so that the Spike column will be same in all analysis sets (R12, R3, metaphlan)
+r3_subset$Spike <- gsub("salm","", as.character(r3_subset$Spike))
+
+r3_poslibrarycounts <- r3_subset %>%
+  group_by(Spike) %>%
+  summarize(Pipeline_positive_libraries = sum(S.ent.hits.to.SSRs > 0))
+
+
+## Round 4
+
+r4_subset = subset(R4_table1, select = c('Spike','Rep','S.ent.hits.to.SSRs'))
+r4_subset[,'Rep'] <- as.factor(r4_subset[,'Rep'])
+
+#Remove characters so that the Spike column will be same in all analysis sets (R12, R3, metaphlan)
+r4_subset$Spike <- gsub("salm","", as.character(r4_subset$Spike))
+
+r4_poslibrarycounts <- r4_subset %>%
+  group_by(Spike) %>%
+  summarize(Pipeline_positive_libraries = sum(S.ent.hits.to.SSRs > 0))
+
+
+## Metaphlan4
+
+mp4_poslibrarycounts <- mp4 %>%
+  group_by(Spike) %>%
+  summarize(Metaphlan4_positive_libraries = sum(g__Salmonella > 0))
+
+
+### Combine tables of positive libraries
+
+#Combine kr2ssr Round1-2 (bac-c0.25 only) and Round3 and Round4 positive library counts
+#Binding rows
+pos1 <- rbind(r3_poslibrarycounts,R12_kr2ssr_poslibcounts,r4_poslibrarycounts)
+
+#Add metaphlan4 column
+pos2 <- merge(pos1,mp4_poslibrarycounts,by='Spike')
+
+#Add replicates column (all spike levels had 20 reps)
+pos2 <- pos2  %>%
+  add_column(Replicates = 20)
+
+#Re-order columns
+pos_colorder <- c('Spike','Replicates','Pipeline_positive_libraries','Metaphlan4_positive_libraries')
+
+pos2 <- pos2[, pos_colorder]
+
+#Re-order rows
+#Need to add 1000 and neg once I have all the data for those
+xorder2 <- c('100000','10000','1000','100','50','10','5','neg')
+pos_table <- pos2 %>%
+  slice(match(xorder2, Spike))
+
+#Give columns nice names for publishing
+pos_table <- pos_table %>%
+  rename('Salmonella reads in library' = 'Spike',
+         'Positive libraries: Kraken2+SSRs' = 'Pipeline_positive_libraries',
+         'Positive libraries: Metaphlan4' = 'Metaphlan4_positive_libraries')
+
+
+
+#Clean up the many objects created
+rm(pos1)
+rm(pos2)
+rm(R12_kr2ssr_poslibcounts)
+rm(r3_poslibrarycounts)
+rm(r4_poslibrarycounts)
+rm(pos_colorder)
+rm(xorder2)
+
+#Display final table
+pos_table
+```
+
+# CaecaSim analysis
+
+```{r}
+CS_markers <- subset(CS_table1, select = c('Freq', 'invA', 'stn'))
+
+CS_markers_melt <- melt(CS_markers)
+
+CSmarkersplot <- ggplot(CS_markers_melt, aes(x = Freq, y = value)) + 
+  geom_point(aes(color = variable), position = position_jitter(width = 0.1, height = 0.1)) +
+  scale_y_log10(labels = scales::label_log()) + 
+  scale_x_discrete(limits=rev,
+                   labels = rev(CS_freqnum)) +
+  xlab("Average Salmonella reads per library") +
+  ylab('Marker gene hits') +
+  labs(color = "Gene")  + scale_color_d3()
+
+
+#Position=jitter is what's stopping points from lining up/all overlapping. Play with w and h. 
+
+```
+
+```{r}
+CSsalmplot <- ggplot(CS_table1, aes(x=Freq, y=Kr2_SSRconfirmed)) + 
+#  geom_boxplot() +
+  geom_point(position = position_jitter(width = 0.1, height = 0.1)) +
+  scale_y_log10(labels = scales::label_log(),
+                breaks = c(1,10,100,1000,10000,100000,1000000)) +
+  scale_x_discrete(limits=rev,
+                   labels = rev(CS_freqnum)) +
+  xlab("Average Salmonella reads in Library") +
+  ylab('Salmonella read hits')
+
+#Libraries have 40 million reads total
+```
+
+
+```{r}
+Fig_detection <- ggarrange(CSmarkersplot +
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.x = element_blank(),
+        legend.position="top"),
+          CSsalmplot,
+          ncol=1)
+```
+Figure: Detection of Salmonella marker genes (top) or Salmonella-derived reads using the established workflow (bottom) in a chicken caecal microbiome background. Libraries contained 40 million reads.
+
+
+Count detection in Caecaspike
+```{r}
+CS_markers$sumcol=rowSums(cbind(CS_markers$invA,CS_markers$stn),na.rm=TRUE)
+
+CS_markers %>%
+  group_by(Freq) %>%
+  summarize(positive_libraries_markers = sum(sumcol > 0))
+
+CS_table1 %>%
+  group_by(Freq) %>%
+  summarize(positive_libraries_Kr2SSR = sum(Kr2_SSRconfirmed > 0))
+```
+
+
+# Export figures
+```{r}
+ggsave("BarplotsComboFig.png", Fig_bar, path = here("R"), width = 17, height = 12, units = "cm")
+```
+
+```{r}
+ggsave("caecasimFig.png", Fig_detection, path = here("R"), width = 16, height = 12, units = "cm")
+```
+
+```{r}
+ggsave("PRfig.png", PRfig, path = here("R"), width = 18, height = 12, units = "cm")
+```
+
